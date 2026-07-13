@@ -1,0 +1,59 @@
+#!/bin/sh
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(head -n1 "$COMMIT_MSG_FILE")
+
+# Regex para mensagens de merge (ignora validação)
+MERGE_PATTERN='^Merge (branch|pull request|remote-tracking branch)'
+
+# Se for uma mensagem de merge, permite sem validação
+if echo "$COMMIT_MSG" | grep -Eq "$MERGE_PATTERN"; then
+    exit 0
+fi
+
+# Regex para Conventional Commits
+CONVENTIONAL_PATTERN='^(feat|fix|docs|style|refactor|test|chore|build|ci|perf)(\([a-z0-9\-]+\))?: .{1,72}$'
+
+# Regex para "patch - mensagem"
+PATCH_PATTERN='^[Pp]atch - .{1,72}$'
+
+# Regex para "100 - mensagem"
+NUM_SINGLE_PATTERN='^[0-9]+ - .{1,72}$'
+
+# Regex para "100-200-300 - mensagem"
+NUM_MULTI_PATTERN='^[0-9]{3}(?:-[0-9]+){1,} - .{1,72}$'
+
+# Verificação combinada
+if echo "$COMMIT_MSG" | grep -Eq "$CONVENTIONAL_PATTERN|$PATCH_PATTERN|$NUM_SINGLE_PATTERN|$NUM_MULTI_PATTERN"; then
+    exit 0
+else
+    echo "❌ Mensagem de commit inválida!"
+    echo ""
+    echo "💡 Use um dos padrões válidos:"
+    echo ""
+    echo "1. 📦 Conventional Commit:"
+    echo "   <tipo>(<escopo>): <mensagem>"
+    echo ""
+    echo "   Exemplos:"
+    echo "     feat(api): adicionar suporte a autenticação"
+    echo "     fix(ui): corrigir bug no botão de login"
+    echo ""
+    echo "   Tipos válidos:"
+    echo "     feat     ➜ nova funcionalidade"
+    echo "     fix      ➜ correção de bug"
+    echo "     docs     ➜ apenas mudanças na documentação"
+    echo "     style    ➜ formatação, ponto e vírgula, espaços etc (sem alteração de código)"
+    echo "     refactor ➜ refatoração que não corrige bug nem adiciona feature"
+    echo "     test     ➜ adição ou modificação de testes"
+    echo "     chore    ➜ mudanças que não afetam a lógica"
+    echo "     build    ➜ mudanças que afetam o sistema de build ou dependências"
+    echo "     ci       ➜ mudanças nos arquivos de configuração de integração contínua"
+    echo "     perf     ➜ melhorias de performance"
+    echo ""
+    echo "2. 🔧 Padrões personalizados:"
+    echo "   patch - descrição da mudança"
+    echo "   100 - descrição da mudança"
+    echo "   100-200-300 - descrição da mudança"
+    echo ""
+    exit 1
+fi

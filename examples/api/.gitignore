@@ -1,0 +1,11 @@
+*.yaml
+*.yaml.*
+!*.example.yaml
+.DS_Store
+/vendor
+.idea
+.vscode
+*.exe
+main
+__eletrize*
+api*

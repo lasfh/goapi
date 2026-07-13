@@ -1,0 +1,7 @@
+FROM golang:1.26
+
+WORKDIR /api
+
+RUN go install github.com/lasfh/eletrize@latest
+
+CMD ["eletrize", "run", "./api", "go build", "--ext=.go,.yaml,.mod", "--label=API"]

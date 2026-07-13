@@ -1,0 +1,96 @@
+# Produção. O Dockerfile compila com -mod=vendor: rode "go mod vendor"
+# antes do build. Variáveis obrigatórias (via ambiente ou .env):
+# AUTH_SECRET e POSTGRES_PASSWORD.
+#
+# Migrações (executar sob demanda):
+#   docker compose -f docker-compose.prod.yml run --rm migrate
+
+name: api-example
+
+x-api-build: &api-build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    VERSION: ${VERSION:-dev}
+    GIT_COMMIT: ${GIT_COMMIT:-unknown}
+
+x-api-environment: &api-environment
+  API_ENVIRONMENT: ${API_ENVIRONMENT:-production}
+  AUTH_SECRET: ${AUTH_SECRET:?defina AUTH_SECRET no ambiente ou no .env}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no ambiente ou no .env}
+  POSTGRES_USER_MIGRATION: ${POSTGRES_USER_MIGRATION:-postgres}
+  POSTGRES_PASSWORD_MIGRATION: ${POSTGRES_PASSWORD_MIGRATION:-}
+  POSTGRES_DATABASE: ${POSTGRES_DATABASE:-api_example}
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+  STORAGE_BASE_DIR: uploads
+
+services:
+  api:
+    build: *api-build
+    # O Dockerfile não define CMD/ENTRYPOINT.
+    command: ["/app/api"]
+    restart: unless-stopped
+    environment: *api-environment
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Job manual de migração; não sobe com o "up" por causa do profile.
+  migrate:
+    profiles: ["tools"]
+    build: *api-build
+    command: ["/app/api", "migration", "up"]
+    restart: "no"
+    environment: *api-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no ambiente ou no .env}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-api_example}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres-data:
+  redis-data:

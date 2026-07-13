@@ -1,0 +1,67 @@
+# Arquivo de configuração de exemplo.
+# Todas as chaves podem ser sobrescritas por variáveis de ambiente,
+# substituindo "." por "_" (ex.: api.port -> API_PORT).
+
+api:
+  host: "" # padrão: localhost
+  port: 8080 # padrão: 8080
+  environment: "local" # padrão: local
+  timezone: "America/Sao_Paulo" # padrão: America/Sao_Paulo
+
+auth:
+  secret: "change-me"
+  with_leeway: 30s
+
+log:
+  level: "info" # debug | info | warn | error (padrão: info)
+  output: "stdout" # stdout | file | loki (padrão: stdout/stderr)
+  split_output: false # true: stdout para logs normais e stderr para erros
+  path: "" # caminho do arquivo de log (quando output: file)
+  loki_endpoint: "" # endpoint OTLP do Loki (quando output: loki), ex.: localhost:3100
+  open_telemetry_insecure: false # true para conexão sem TLS com o endpoint OTLP
+  open_telemetry_service_name: "api-example"
+  open_telemetry_namespace: "goapi"
+
+cors:
+  allowed_origins:
+    - "http://localhost:3000"
+  allowed_headers:
+    - "Authorization"
+    - "Content-Type"
+  exposed_headers: []
+  debug: false
+
+postgres:
+  dsn: "" # se definido, ignora os demais campos de conexão (ex.: postgres://user:pass@localhost:5432/db?sslmode=disable)
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  user_migration: "postgres" # usuário utilizado nas migrations
+  password_migration: "postgres"
+  database: "api_example"
+  max_idle_conns: 5 # padrão: 5
+  max_open_conns: 20 # padrão: 20
+  max_lifetime: 1h # padrão: 1h
+  max_idle_time: 5m # padrão: 5m
+  debug: false
+
+redis:
+  host: "localhost"
+  port: "6379"
+  password: ""
+  database: 0
+
+storage:
+  driver: "local" # local | s3
+  base_dir: "uploads" # sufixado com o environment (ex.: uploads_local)
+  # Opções do driver local (permissões em octal, ex.: 0755 -> 493)
+  local_dir_perm: 493 # 0755
+  local_file_perm: 420 # 0644
+  # Opções do driver s3
+  s3_endpoint: ""
+  s3_bucket: ""
+  s3_region: "us-east-1"
+  s3_access_key: ""
+  s3_secret_key: ""
+  s3_use_path_style: false # true para MinIO e afins
